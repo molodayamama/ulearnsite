@@ -9,3 +9,4 @@ urlpatterns = [
     path('skills/', views.skills, name='skills'),
     path('latest-vacancies/', views.latest_vacancies, name='latest_vacancies'),
 ]
+
