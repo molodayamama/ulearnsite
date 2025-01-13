@@ -4,6 +4,7 @@ import seaborn as sns
 from datetime import datetime
 import os
 from django.conf import settings
+import numpy as np
 
 class DataProcessor:
     def __init__(self, csv_path):
@@ -14,33 +15,57 @@ class DataProcessor:
                 'name', 'key_skills', 'salary_from', 'salary_to',
                 'salary_currency', 'area_name', 'published_at'
             ],
+            dtype={
+                'name': str,
+                'key_skills': str,
+                # Убираем предварительное приведение типов для зарплат
+                'salary_currency': str,
+                'area_name': str,
+                'published_at': str
+            },
+            na_values=[''],
             low_memory=False
         )
 
-    # Преобразуем даты в datetime более надежным способом
-        def parse_date(date_str):
-            try:
-                date_str = date_str.split('+')[0]
-                return pd.to_datetime(date_str)
-            except:
-                return None
-
-        # Применяем функцию parse_date к колонке published_at
-        self.df['published_at'] = self.df['published_at'].apply(parse_date)
+        # Оптимизированная обработка дат
+        self.df['published_at'] = pd.to_datetime(
+            self.df['published_at'].str.split('+').str[0],
+            format='%Y-%m-%dT%H:%M:%S',
+            errors='coerce'
+        )
         self.df['year'] = self.df['published_at'].dt.year
 
-        # Преобразуем зарплаты в числовой формат для основного DataFrame
+        # Преобразование зарплат в числовой формат
         self.df['salary_from'] = pd.to_numeric(self.df['salary_from'], errors='coerce')
         self.df['salary_to'] = pd.to_numeric(self.df['salary_to'], errors='coerce')
 
-        # Создаем PHP DataFrame правильным способом
-        mask = self.df['name'].str.contains('php|пхп|рнр', case=False, na=False)
-        self.php_df = self.df[mask].copy()  # Используем .copy() для создания независимой копии
+        # Создание маски для PHP вакансий
+        php_mask = self.df['name'].str.contains('php|пхп|рнр', case=False, na=False)
+        self.php_df = self.df[php_mask].copy()
+
+        # Подготовка данных для зарплат
+        self._prepare_salary_data()
 
 
+    def _prepare_salary_data(self):
+        """Подготовка данных о зарплатах"""
+        # Создаем словарь курсов валют (можно расширить)
+        self.currency_rates = {
+            'USD': 90, 'EUR': 98, 'RUR': 1, 'RUB': 1,
+            'KZT': 0.15, 'BYR': 27, 'UAH': 2.5, 'GEL': 34
+        }
 
-    def convert_salary_to_rub(self, row):
-        """Конвертация зарплаты в рубли"""
+        # Конвертация зарплат в рубли
+        self.df['salary_rub'] = self.df.apply(self._convert_salary_to_rub, axis=1)
+        self.php_df['salary_rub'] = self.php_df.apply(self._convert_salary_to_rub, axis=1)
+
+        # Удаление выбросов
+        salary_mask = self.df['salary_rub'] < 10000000
+        self.df = self.df[salary_mask]
+        self.php_df = self.php_df[self.php_df['salary_rub'] < 10000000]
+
+    def _convert_salary_to_rub(self, row):
+        """Оптимизированная конвертация зарплаты в рубли"""
         if pd.isna(row['salary_from']) and pd.isna(row['salary_to']):
             return None
 
@@ -51,149 +76,202 @@ class DataProcessor:
             return None
 
         avg_salary = (salary_from + salary_to) / 2 if salary_to != 0 else salary_from
-
-        # Курсы валют по годам
-        currency_rates = {
-            2005: {'USD': 28.5, 'EUR': 34.2, 'RUR': 1, 'RUB': 1},
-            2006: {'USD': 26.3, 'EUR': 34.7, 'RUR': 1, 'RUB': 1},
-            # Добавьте курсы для остальных лет
-            2024: {'USD': 90, 'EUR': 98, 'RUR': 1, 'RUB': 1}
-        }
-
-        year = row['year']
-        if year not in currency_rates:
-            year = 2024
-
         currency = row['salary_currency']
-        if pd.isna(currency) or currency not in currency_rates[year]:
+
+        if pd.isna(currency) or currency not in self.currency_rates:
             return None
 
-        return avg_salary * currency_rates[year][currency]
+        return avg_salary * self.currency_rates[currency]
 
     def process_salary_statistics(self):
-        """Обработка статистики зарплат для всех вакансий и PHP"""
-        # Для всех вакансий
-        self.df['salary_rub'] = self.df.apply(self.convert_salary_to_rub, axis=1)
-        self.df = self.df[self.df['salary_rub'] < 10000000]  # Убираем выбросы
+        """Оптимизированная обработка статистики зарплат"""
+        # Группировка данных
+        all_stats = self.df.groupby('year').agg({
+            'salary_rub': 'mean',
+            'name': 'count'
+        }).round(2)
 
-        all_salary_by_year = self.df.groupby('year')['salary_rub'].mean().round(2)
-        all_count_by_year = self.df.groupby('year').size()
+        php_stats = self.php_df.groupby('year').agg({
+            'salary_rub': 'mean',
+            'name': 'count'
+        }).round(2)
 
-        # Для PHP вакансий
-        self.php_df['salary_rub'] = self.php_df.apply(self.convert_salary_to_rub, axis=1)
-        self.php_df = self.php_df[self.php_df['salary_rub'] < 10000000]
-
-        php_salary_by_year = self.php_df.groupby('year')['salary_rub'].mean().round(2)
-        php_count_by_year = self.php_df.groupby('year').size()
-
-        return (all_salary_by_year, all_count_by_year,
-                php_salary_by_year, php_count_by_year)
+        return (
+            all_stats['salary_rub'],
+            all_stats['name'],
+            php_stats['salary_rub'],
+            php_stats['name']
+        )
 
     def process_geography_data(self):
-        """Обработка географических данных для всех вакансий и PHP"""
-        # Для всех вакансий
-        total_vacancies = len(self.df)
-        city_stats = self.df.groupby('area_name').agg({
-            'salary_rub': 'mean',
-            'name': 'count'
-        }).round(2)
-        city_stats['vacancy_share'] = (city_stats['name'] / total_vacancies * 100).round(2)
-        all_city_stats = city_stats[city_stats['vacancy_share'] > 1]
+        """Оптимизированная обработка географических данных"""
+        def process_city_stats(df):
+            total_vacancies = len(df)
+            city_stats = df.groupby('area_name').agg({
+                'salary_rub': 'mean',
+                'name': 'count'
+            }).round(2)
+            city_stats['vacancy_share'] = (city_stats['name'] / total_vacancies * 100).round(2)
+            return city_stats[city_stats['name'] >= total_vacancies * 0.01]
 
-        # Для PHP вакансий
-        total_php_vacancies = len(self.php_df)
-        php_city_stats = self.php_df.groupby('area_name').agg({
-            'salary_rub': 'mean',
-            'name': 'count'
-        }).round(2)
-        php_city_stats['vacancy_share'] = (php_city_stats['name'] / total_php_vacancies * 100).round(2)
-        php_city_stats = php_city_stats[php_city_stats['vacancy_share'] > 1]
-
-        return all_city_stats, php_city_stats
+        return process_city_stats(self.df), process_city_stats(self.php_df)
 
     def process_skills(self):
-        """Обработка навыков для всех вакансий и PHP"""
-        # Для всех вакансий
-        all_skills_df = self.df[self.df['key_skills'].notna()]
-        all_skills = []
-        for skills in all_skills_df['key_skills']:
-            if isinstance(skills, str):
-                all_skills.extend([skill.strip() for skill in skills.split('\n')])
-        all_skills_count = pd.Series(all_skills).value_counts()
+        """Оптимизированная обработка навыков"""
+        def process_skills_data(df):
+            skills = df[df['key_skills'].notna()]['key_skills'].str.split('\n').explode()
+            return skills.value_counts()
 
-        # Для PHP вакансий
-        php_skills_df = self.php_df[self.php_df['key_skills'].notna()]
-        php_skills = []
-        for skills in php_skills_df['key_skills']:
-            if isinstance(skills, str):
-                php_skills.extend([skill.strip() for skill in skills.split('\n')])
-        php_skills_count = pd.Series(php_skills).value_counts()
+        return process_skills_data(self.df), process_skills_data(self.php_df)
 
-        return all_skills_count, php_skills_count
-
-    def create_salary_graph(self, data, title, filename, is_general=True):
-        """Создание графика зарплат"""
+    def create_graph(self, data, title, filename, graph_type='line'):
+        """Универсальный метод создания графиков"""
         plt.figure(figsize=(12, 6))
-        plt.plot(data.index, data.values, marker='o')
-        plt.title(title)
-        plt.xlabel('Год')
-        plt.ylabel('Средняя зарплата (руб.)')
-        plt.grid(True)
-        plt.xticks(rotation=45)
+        # Удаляем эту строку: plt.style.use('seaborn')
 
-        graph_path = os.path.join(settings.MEDIA_ROOT, 'graphs', filename)
-        os.makedirs(os.path.dirname(graph_path), exist_ok=True)
-        plt.savefig(graph_path, bbox_inches='tight', dpi=300)
-        plt.close()
-        return f'graphs/{filename}'
+        # Настраиваем базовый стиль
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.rcParams['font.size'] = 10
 
-    def create_count_graph(self, data, title, filename, is_general=True):
-        """Создание графика количества вакансий"""
-        plt.figure(figsize=(12, 6))
-        plt.plot(data.index, data.values, marker='o')
-        plt.title(title)
-        plt.xlabel('Год')
-        plt.ylabel('Количество вакансий')
-        plt.grid(True)
-        plt.xticks(rotation=45)
+        if graph_type == 'line':
+            plt.plot(data.index, data.values, marker='o', linewidth=2, color='#2c3e50')
+            plt.grid(True)
+            plt.xticks(rotation=45)
+        elif graph_type == 'bar':
+            colors = plt.cm.Set3(np.linspace(0, 1, len(data.head(20))))
+            data.head(20).plot(kind='bar', color=colors)
+            plt.xticks(rotation=45, ha='right')
+        elif graph_type == 'pie':
+            colors = plt.cm.Set3(np.linspace(0, 1, len(data.head(10))))
+            plt.pie(
+                data.head(10),
+                labels=data.head(10).index,
+                autopct='%1.1f%%',
+                startangle=90,
+                colors=colors
+            )
 
-        graph_path = os.path.join(settings.MEDIA_ROOT, 'graphs', filename)
-        os.makedirs(os.path.dirname(graph_path), exist_ok=True)
-        plt.savefig(graph_path, bbox_inches='tight', dpi=300)
-        plt.close()
-        return f'graphs/{filename}'
-
-    def create_geography_graph(self, data, title, filename, is_general=True):
-        """Создание графика географии"""
-        plt.figure(figsize=(12, 8))
-        top_10_cities = data.head(10)
-
-        plt.pie(
-            top_10_cities['vacancy_share'],
-            labels=top_10_cities.index,
-            autopct='%1.1f%%',
-            startangle=90
-        )
-        plt.title(title)
-
-        graph_path = os.path.join(settings.MEDIA_ROOT, 'graphs', filename)
-        os.makedirs(os.path.dirname(graph_path), exist_ok=True)
-        plt.savefig(graph_path, bbox_inches='tight', dpi=300)
-        plt.close()
-        return f'graphs/{filename}'
-
-    def create_skills_graph(self, data, title, filename, is_general=True):
-        """Создание графика навыков"""
-        plt.figure(figsize=(15, 8))
-        data.head(20).plot(kind='bar')
-        plt.title(title)
-        plt.xlabel('Навыки')
-        plt.ylabel('Количество упоминаний')
-        plt.xticks(rotation=45, ha='right')
+        plt.title(title, pad=20, fontsize=12, fontweight='bold')
         plt.tight_layout()
 
+        # Сохранение графика
         graph_path = os.path.join(settings.MEDIA_ROOT, 'graphs', filename)
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
-        plt.savefig(graph_path, bbox_inches='tight', dpi=300)
+        plt.savefig(graph_path, dpi=300, bbox_inches='tight')
         plt.close()
+
         return f'graphs/{filename}'
+
+    def create_all_graphs(self):
+        """Создание всех необходимых графиков"""
+        graphs = []
+
+        # Получаем все необходимые данные
+        salary_data = self.process_salary_statistics()
+        geo_data = self.process_geography_data()
+        skills_data = self.process_skills()
+
+        # Список всех графиков с их параметрами
+        graphs_config = [
+            # Общая статистика (is_general=True)
+            {
+                'data': salary_data[0],
+                'title': 'Динамика уровня зарплат по годам',
+                'filename': 'general_salary_dynamics.png',
+                'graph_type': 'salary',
+                'is_general': True,
+                'plot_type': 'line'
+            },
+            {
+                'data': salary_data[1],
+                'title': 'Динамика количества вакансий по годам',
+                'filename': 'general_count_dynamics.png',
+                'graph_type': 'demand',
+                'is_general': True,
+                'plot_type': 'line'
+            },
+            {
+                'data': geo_data[0]['salary_rub'],
+                'title': 'Уровень зарплат по городам',
+                'filename': 'general_city_salary.png',
+                'graph_type': 'geography_salary',
+                'is_general': True,
+                'plot_type': 'bar'
+            },
+            {
+                'data': geo_data[0]['vacancy_share'],
+                'title': 'Доля вакансий по городам',
+                'filename': 'general_city_share.png',
+                'graph_type': 'geography_share',
+                'is_general': True,
+                'plot_type': 'pie'
+            },
+            {
+                'data': skills_data[0],
+                'title': 'ТОП-20 навыков',
+                'filename': 'general_skills.png',
+                'graph_type': 'skills',
+                'is_general': True,
+                'plot_type': 'bar'
+            },
+            # PHP статистика (is_general=False)
+            {
+                'data': salary_data[2],
+                'title': 'Динамика уровня зарплат PHP-программиста по годам',
+                'filename': 'php_salary_dynamics.png',
+                'graph_type': 'salary',
+                'is_general': False,
+                'plot_type': 'line'
+            },
+            {
+                'data': salary_data[3],
+                'title': 'Динамика количества вакансий PHP-программиста по годам',
+                'filename': 'php_count_dynamics.png',
+                'graph_type': 'demand',
+                'is_general': False,
+                'plot_type': 'line'
+            },
+            {
+                'data': geo_data[1]['salary_rub'],
+                'title': 'Уровень зарплат PHP-программиста по городам',
+                'filename': 'php_city_salary.png',
+                'graph_type': 'geography_salary',
+                'is_general': False,
+                'plot_type': 'bar'
+            },
+            {
+                'data': geo_data[1]['vacancy_share'],
+                'title': 'Доля вакансий PHP-программиста по городам',
+                'filename': 'php_city_share.png',
+                'graph_type': 'geography_share',
+                'is_general': False,
+                'plot_type': 'pie'
+            },
+            {
+                'data': skills_data[1],
+                'title': 'ТОП-20 навыков PHP-программиста',
+                'filename': 'php_skills.png',
+                'graph_type': 'skills',
+                'is_general': False,
+                'plot_type': 'bar'
+            }
+        ]
+
+        # Создаем все графики
+        result = []
+        for config in graphs_config:
+            file_path = self.create_graph(
+                config['data'],
+                config['title'],
+                config['filename'],
+                config['plot_type']
+            )
+            result.append({
+                'title': config['title'],
+                'image': file_path,
+                'graph_type': config['graph_type'],
+                'is_general': config['is_general']
+            })
+
+        return result
+
