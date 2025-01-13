@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +7,6 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-
 <body>
     <header>
         <div class="logo">
@@ -17,20 +15,20 @@
     </header>
 
     <div class="container">
-        <nav class="left-menu">
+        <nav class="sidebar">
             <ul>
-                <li><a href="{% url 'index' %}">Главная</a></li>
-                <li><a href="{% url 'general_statistics' %}">Общая статистика</a></li>
-                <li><a href="{% url 'demand' %}">Востребованность</a></li>
-                <li><a href="{% url 'geography' %}">География</a></li>
-                <li><a href="{% url 'skills' %}">Навыки</a></li>
-                <li><a href="{% url 'latest_vacancies' %}">Последние вакансии</a></li>
+                <li><a href="{% url 'index' %}" {% if request.path == '/' %}class="active"{% endif %}>Главная</a></li>
+                <li><a href="{% url 'general_statistics' %}" {% if 'general-statistics' in request.path %}class="active"{% endif %}>Общая статистика</a></li>
+                <li><a href="{% url 'demand' %}" {% if 'demand' in request.path %}class="active"{% endif %}>Востребованность</a></li>
+                <li><a href="{% url 'geography' %}" {% if 'geography' in request.path %}class="active"{% endif %}>География</a></li>
+                <li><a href="{% url 'skills' %}" {% if 'skills' in request.path %}class="active"{% endif %}>Навыки</a></li>
+                <li><a href="{% url 'latest_vacancies' %}" {% if 'latest-vacancies' in request.path %}class="active"{% endif %}>Последние вакансии</a></li>
             </ul>
         </nav>
 
         <main class="content">
-            {% block content %}
-            {% endblock %}
+            <h2>{% block page_title %}{% endblock %}</h2>
+            {% block content %}{% endblock %}
         </main>
     </div>
 
@@ -38,5 +36,4 @@
         <p>Якупов Артемий Ильич - РИ-230941</p>
     </footer>
 </body>
-
 </html>

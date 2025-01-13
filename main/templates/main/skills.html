@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Навыки PHP-программиста - PHP Аналитика{% endblock %}
+{% block page_title %}Навыки PHP-программиста{% endblock %}
+{% block content %}
+<div class="skills">
+    <section>
+        <h3>ТОП-20 навыков PHP-программиста по годам</h3>
+        <div class="graph">
+            {% for graph in php_skills_graphs %}
+                <img src="{{ graph.image.url }}" alt="График навыков PHP">
+            {% endfor %}
+        </div>
+        <div class="statistics-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Навык</th>
+                        <th>Количество упоминаний</th>
+                        <th>Процент вакансий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for skill in php_skills_statistics %}
+                    <tr>
+                        <td>{{ skill.name }}</td>
+                        <td>{{ skill.count }}</td>
+                        <td>{{ skill.percentage|floatformat:2 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

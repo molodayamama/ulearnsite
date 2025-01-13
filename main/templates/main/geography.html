@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}География PHP-программиста - PHP Аналитика{% endblock %}
+{% block page_title %}География PHP-программиста{% endblock %}
+{% block content %}
+<div class="geography">
+    <!-- Зарплаты по городам для PHP -->
+    <section>
+        <h3>Уровень зарплат PHP-программиста по городам</h3>
+        <div class="graph">
+            {% for graph in php_salary_city_graphs %}
+                <img src="{{ graph.image.url }}" alt="График зарплат по городам">
+            {% endfor %}
+        </div>
+        <div class="statistics-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Город</th>
+                        <th>Средняя зарплата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for city in php_city_salary_statistics %}
+                    <tr>
+                        <td>{{ city.city }}</td>
+                        <td>{{ city.average_salary|floatformat:0 }} ₽</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Доля вакансий по городам для PHP -->
+    <section>
+        <h3>Доля вакансий PHP-программиста по городам</h3>
+        <div class="graph">
+            {% for graph in php_geography_graphs %}
+                <img src="{{ graph.image.url }}" alt="График доли вакансий по городам">
+            {% endfor %}
+        </div>
+        <div class="statistics-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Город</th>
+                        <th>Доля вакансий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for city in php_city_share_statistics %}
+                    <tr>
+                        <td>{{ city.city }}</td>
+                        <td>{{ city.vacancy_share|floatformat:2 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
