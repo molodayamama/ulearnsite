@@ -1,44 +1,58 @@
 {% extends 'base.html' %}
-
 {% block title %}Последние вакансии - PHP Аналитика{% endblock %}
-
 {% block page_title %}Последние вакансии{% endblock %}
 
 {% block content %}
 <div class="latest-vacancies">
     {% if vacancies %}
         {% for vacancy in vacancies %}
-            <div class="vacancy">
-                <h3>{{ vacancy.title }}</h3>
-                <div class="vacancy-details">
-                    <p><strong>Компания:</strong> {{ vacancy.company }}</p>
-                    <p><strong>Регион:</strong> {{ vacancy.region }}</p>
-                    {% if vacancy.salary_from or vacancy.salary_to %}
-                        <p><strong>Зарплата:</strong>
-                            {% if vacancy.salary_from and vacancy.salary_to %}
-                                от {{ vacancy.salary_from }} до {{ vacancy.salary_to }}
-                            {% elif vacancy.salary_from %}
-                                от {{ vacancy.salary_from }}
-                            {% elif vacancy.salary_to %}
-                                до {{ vacancy.salary_to }}
-                            {% endif %}
-                            {{ vacancy.salary_currency }}
+            <article class="vacancy">
+                <header class="vacancy-header">
+                    <h3>{{ vacancy.title }}</h3>
+                    <div class="vacancy-meta">
+                        <div class="company-info">
+                            <p><strong>Компания:</strong> {{ vacancy.company }}</p>
+                            <p><strong>Регион:</strong> {{ vacancy.region }}</p>
+                        </div>
+
+                        {% if vacancy.salary_from or vacancy.salary_to %}
+                            <p class="salary">
+                                <strong>Зарплата:</strong>
+                                {% if vacancy.salary_from and vacancy.salary_to %}
+                                    {{ vacancy.salary_from }} - {{ vacancy.salary_to }} {{ vacancy.salary_currency }}
+                                {% elif vacancy.salary_from %}
+                                    от {{ vacancy.salary_from }} {{ vacancy.salary_currency }}
+                                {% elif vacancy.salary_to %}
+                                    до {{ vacancy.salary_to }} {{ vacancy.salary_currency }}
+                                {% endif %}
+                            </p>
+                        {% endif %}
+
+                        <p class="publication-date">
+                            <strong>Опубликовано:</strong>
+                            {{ vacancy.published_at|date:"d.m.Y H:i" }}
                         </p>
-                    {% endif %}
-                    {% if vacancy.skills %}
-                        <p><strong>Навыки:</strong> {{ vacancy.skills }}</p>
-                    {% endif %}
-                    <p><strong>Дата публикации:</strong> {{ vacancy.published_at|date:"d.m.Y H:i" }}</p>
-                </div>
-                {% if vacancy.description %}
-                    <div class="vacancy-description">
-                        <p>{{ vacancy.description|linebreaks }}</p>
                     </div>
-                {% endif %}
-            </div>
+                </header>
+
+                <div class="vacancy-content">
+                    {% if vacancy.description %}
+                        <div class="vacancy-description">
+                            {{ vacancy.description|linebreaks }}
+                        </div>
+                    {% endif %}
+
+                    {% if vacancy.skills %}
+                        <div class="vacancy-skills">
+                            <strong>Ключевые навыки:</strong>
+                            <p>{{ vacancy.skills }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
         {% endfor %}
     {% else %}
-        <p>На данный момент нет доступных вакансий</p>
+        <p class="no-vacancies">На данный момент нет доступных вакансий</p>
     {% endif %}
 </div>
 {% endblock %}

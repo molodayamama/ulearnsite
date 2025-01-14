@@ -2,7 +2,7 @@ from django.db import models
 
 class MainPage(models.Model):
     """Модель для главной страницы"""
-    title = models.CharField('Заголовок', max_length=200)
+    title = models.CharField('Заголовок', max_length=200, default='PHP-программист')
     description = models.TextField('Описание профессии')
     image = models.ImageField('Изображение', upload_to='profession_images/')
 

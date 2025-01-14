@@ -2,14 +2,25 @@ from django.shortcuts import render
 from django.core.cache import cache
 from .models import MainPage, SalaryStatistics, GeographyData, Skill, Graph, LastVacancy
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
+from bs4 import BeautifulSoup
 
 def index(request):
     """Представление главной страницы"""
+    main_info = MainPage.objects.first()
+    if not main_info:
+        main_info = MainPage.objects.create(
+            title="PHP-программист",
+            description="пук-пук-пук-пук",
+            # Добавьте дефолтное изображение в папку static/images/
+            image="/static/images/profession.jpg"
+        )
+
     context = {
-        'main_info': MainPage.objects.first(),  # Получаем информацию о профессии
+        'main_info': main_info
     }
     return render(request, 'main/index.html', context)
+
 
 def general_statistics(request):
     """Представление общей статистики"""
