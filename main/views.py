@@ -3,7 +3,6 @@ from django.core.cache import cache
 from .models import MainPage, SalaryStatistics, GeographyData, Skill, Graph, LastVacancy
 import requests
 from datetime import datetime
-from bs4 import BeautifulSoup
 
 def index(request):
     """Представление главной страницы"""
