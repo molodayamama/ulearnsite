@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-x2ba!y&+#%t&fl*8682*y0-vizbiedzy99qbh%c$x8-imf!yse
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'molodayamama.pythonanywhere.com']
 
 
 # Application definition
@@ -117,13 +117,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "main" / "static",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
