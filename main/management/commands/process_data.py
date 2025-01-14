@@ -3,20 +3,23 @@ from main.utils import DataProcessor
 from main.models import SalaryStatistics, GeographyData, Skill, Graph
 import os
 
+
 class Command(BaseCommand):
-    help = 'Process vacancy data from CSV file'
+    help = "Process vacancy data from CSV file"
 
     def add_arguments(self, parser):
-        parser.add_argument('csv_file', type=str, help='Path to the CSV file')
+        parser.add_argument("csv_file", type=str, help="Path to the CSV file")
 
     def handle(self, *args, **options):
-        csv_path = options['csv_file']
+        csv_path = options["csv_file"]
         if not os.path.exists(csv_path):
-            self.stdout.write(self.style.ERROR(f'File not found: {csv_path}'))
+            self.stdout.write(self.style.ERROR(f"File not found: {csv_path}"))
             return
 
         try:
-            self.stdout.write(self.style.SUCCESS(f'Starting data processing from {csv_path}'))
+            self.stdout.write(
+                self.style.SUCCESS(f"Starting data processing from {csv_path}")
+            )
 
             # Очищаем старые данные
             SalaryStatistics.objects.all().delete()
@@ -28,10 +31,12 @@ class Command(BaseCommand):
             processor = DataProcessor(csv_path)
 
             # Обработка и сохранение всех данных
-            self.stdout.write('Processing data...')
+            self.stdout.write("Processing data...")
 
             # Статистика зарплат
-            all_salary, all_count, php_salary, php_count = processor.process_salary_statistics()
+            all_salary, all_count, php_salary, php_count = (
+                processor.process_salary_statistics()
+            )
 
             # Сохранение статистики
             for year in all_salary.index:
@@ -39,14 +44,14 @@ class Command(BaseCommand):
                     year=year,
                     average_salary=all_salary[year],
                     vacancy_count=all_count[year],
-                    is_general=True
+                    is_general=True,
                 )
                 if year in php_salary.index:
                     SalaryStatistics.objects.create(
                         year=year,
                         average_salary=php_salary[year],
                         vacancy_count=php_count[year],
-                        is_general=False
+                        is_general=False,
                     )
 
             # География
@@ -56,19 +61,19 @@ class Command(BaseCommand):
             for city in all_geo.index:
                 GeographyData.objects.create(
                     city=city,
-                    average_salary=all_geo.loc[city, 'salary_rub'],
-                    vacancy_share=all_geo.loc[city, 'vacancy_share'],
+                    average_salary=all_geo.loc[city, "salary_rub"],
+                    vacancy_share=all_geo.loc[city, "vacancy_share"],
                     year=2024,
-                    is_general=True
+                    is_general=True,
                 )
 
             for city in php_geo.index:
                 GeographyData.objects.create(
                     city=city,
-                    average_salary=php_geo.loc[city, 'salary_rub'],
-                    vacancy_share=php_geo.loc[city, 'vacancy_share'],
+                    average_salary=php_geo.loc[city, "salary_rub"],
+                    vacancy_share=php_geo.loc[city, "vacancy_share"],
                     year=2024,
-                    is_general=False
+                    is_general=False,
                 )
 
             # Навыки
@@ -77,41 +82,41 @@ class Command(BaseCommand):
             # Сохранение навыков
             for skill, count in all_skills.head(20).items():
                 Skill.objects.create(
-                    name=skill,
-                    year=2024,
-                    count=count,
-                    is_general=True
+                    name=skill, year=2024, count=count, is_general=True
                 )
 
             for skill, count in php_skills.head(20).items():
                 Skill.objects.create(
-                    name=skill,
-                    year=2024,
-                    count=count,
-                    is_general=False
+                    name=skill, year=2024, count=count, is_general=False
                 )
 
             # Создание всех графиков
-            self.stdout.write('Creating graphs...')
+            self.stdout.write("Creating graphs...")
             graphs = processor.create_all_graphs()
 
-            # Сохранение графиков
-            for graph in graphs:
+            # Сохранение графиков (исправленная версия)
+            for graph_data in graphs:
                 Graph.objects.create(
-                    title=graph['title'],
-                    image=graph['image'],
-                    graph_type=graph['type'],
-                    is_general=graph['is_general']
+                    title=graph_data["title"],
+                    image=graph_data["image"],
+                    graph_type=graph_data[
+                        "graph_type"
+                    ],  # Используем graph_type вместо type
+                    is_general=graph_data["is_general"],
                 )
 
-            self.stdout.write(self.style.SUCCESS('Successfully processed vacancy data'))
+            self.stdout.write(self.style.SUCCESS("Successfully processed vacancy data"))
 
             # Итоговая статистика
-            self.stdout.write(f'Total statistics records: {SalaryStatistics.objects.count()}')
-            self.stdout.write(f'Total geography records: {GeographyData.objects.count()}')
-            self.stdout.write(f'Total skills records: {Skill.objects.count()}')
-            self.stdout.write(f'Total graphs: {Graph.objects.count()}')
+            self.stdout.write(
+                f"Total statistics records: {SalaryStatistics.objects.count()}"
+            )
+            self.stdout.write(
+                f"Total geography records: {GeographyData.objects.count()}"
+            )
+            self.stdout.write(f"Total skills records: {Skill.objects.count()}")
+            self.stdout.write(f"Total graphs: {Graph.objects.count()}")
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error processing: {str(e)}'))
-
+            self.stdout.write(self.style.ERROR(f"Error processing: {str(e)}"))
+            raise  # Добавим это для более подробного отслеживания ошибки

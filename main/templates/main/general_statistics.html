@@ -8,7 +8,9 @@
         <h3>Динамика уровня зарплат по годам</h3>
         <div class="graph">
             {% for graph in salary_graphs %}
-                <img src="{{ graph.image.url }}" alt="График зарплат">
+            {% if graph.graph_type == 'salary' and graph.is_general %}
+            <img src="{{ graph.image.url }}" alt="График зарплат">
+            {% endif %}
             {% endfor %}
         </div>
         <div class="statistics-table">
@@ -36,7 +38,9 @@
         <h3>Динамика количества вакансий по годам</h3>
         <div class="graph">
             {% for graph in demand_graphs %}
-                <img src="{{ graph.image.url }}" alt="График количества вакансий">
+            {% if graph.graph_type == 'demand' and graph.is_general %}
+            <img src="{{ graph.image.url }}" alt="График количества вакансий">
+            {% endif %}
             {% endfor %}
         </div>
         <div class="statistics-table">
@@ -63,8 +67,10 @@
     <section>
         <h3>Уровень зарплат по городам</h3>
         <div class="graph">
-            {% for graph in salary_city_graphs %}
-                <img src="{{ graph.image.url }}" alt="График зарплат по городам">
+            {% for graph in geography_salary_graphs %}
+            {% if graph.graph_type == 'geography_salary' and graph.is_general %}
+            <img src="{{ graph.image.url }}" alt="График зарплат по городам">
+            {% endif %}
             {% endfor %}
         </div>
         <div class="statistics-table">
@@ -91,8 +97,10 @@
     <section>
         <h3>Доля вакансий по городам</h3>
         <div class="graph">
-            {% for graph in geography_graphs %}
-                <img src="{{ graph.image.url }}" alt="График доли вакансий по городам">
+            {% for graph in geography_share_graphs %}
+            {% if graph.graph_type == 'geography_share' and graph.is_general %}
+            <img src="{{ graph.image.url }}" alt="График доли вакансий по городам">
+            {% endif %}
             {% endfor %}
         </div>
         <div class="statistics-table">
@@ -117,10 +125,12 @@
 
     <!-- ТОП-20 навыков -->
     <section>
-        <h3>ТОП-20 навыков по годам</h3>
+        <h3>ТОП-20 навыков</h3>
         <div class="graph">
             {% for graph in skills_graphs %}
-                <img src="{{ graph.image.url }}" alt="График навыков">
+            {% if graph.graph_type == 'skills' and graph.is_general %}
+            <img src="{{ graph.image.url }}" alt="График навыков">
+            {% endif %}
             {% endfor %}
         </div>
         <div class="statistics-table">

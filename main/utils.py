@@ -117,17 +117,28 @@ class DataProcessor:
         return process_city_stats(self.df), process_city_stats(self.php_df)
 
     def process_skills(self):
-        """Оптимизированная обработка навыков"""
-        def process_skills_data(df):
-            skills = df[df['key_skills'].notna()]['key_skills'].str.split('\n').explode()
-            return skills.value_counts()
+        """Обработка навыков по годам"""
+        def process_skills_by_year(df):
+            skills_by_year = {}
+            for year in df['year'].unique():
+                year_df = df[df['year'] == year]
+                year_skills = year_df[year_df['key_skills'].notna()]['key_skills'].str.split('\n').explode()
+                if not year_skills.empty:
+                    skills_by_year[year] = year_skills.value_counts().head(20)
+            return skills_by_year
 
-        return process_skills_data(self.df), process_skills_data(self.php_df)
+        # Обработка для всех вакансий
+        all_skills_by_year = process_skills_by_year(self.df)
+
+        # Обработка для PHP вакансий
+        php_skills_by_year = process_skills_by_year(self.php_df)
+
+        return all_skills_by_year, php_skills_by_year
+
 
     def create_graph(self, data, title, filename, graph_type='line'):
         """Универсальный метод создания графиков"""
         plt.figure(figsize=(12, 6))
-        # Удаляем эту строку: plt.style.use('seaborn')
 
         # Настраиваем базовый стиль
         plt.grid(True, linestyle='--', alpha=0.7)
@@ -171,106 +182,103 @@ class DataProcessor:
         geo_data = self.process_geography_data()
         skills_data = self.process_skills()
 
-        # Список всех графиков с их параметрами
-        graphs_config = [
-            # Общая статистика (is_general=True)
-            {
-                'data': salary_data[0],
-                'title': 'Динамика уровня зарплат по годам',
-                'filename': 'general_salary_dynamics.png',
-                'graph_type': 'salary',
-                'is_general': True,
-                'plot_type': 'line'
-            },
-            {
-                'data': salary_data[1],
-                'title': 'Динамика количества вакансий по годам',
-                'filename': 'general_count_dynamics.png',
-                'graph_type': 'demand',
-                'is_general': True,
-                'plot_type': 'line'
-            },
-            {
-                'data': geo_data[0]['salary_rub'],
-                'title': 'Уровень зарплат по городам',
-                'filename': 'general_city_salary.png',
-                'graph_type': 'geography_salary',
-                'is_general': True,
-                'plot_type': 'bar'
-            },
-            {
-                'data': geo_data[0]['vacancy_share'],
-                'title': 'Доля вакансий по городам',
-                'filename': 'general_city_share.png',
-                'graph_type': 'geography_share',
-                'is_general': True,
-                'plot_type': 'pie'
-            },
-            {
-                'data': skills_data[0],
-                'title': 'ТОП-20 навыков',
-                'filename': 'general_skills.png',
-                'graph_type': 'skills',
-                'is_general': True,
-                'plot_type': 'bar'
-            },
-            # PHP статистика (is_general=False)
-            {
-                'data': salary_data[2],
-                'title': 'Динамика уровня зарплат PHP-программиста по годам',
-                'filename': 'php_salary_dynamics.png',
-                'graph_type': 'salary',
-                'is_general': False,
-                'plot_type': 'line'
-            },
-            {
-                'data': salary_data[3],
-                'title': 'Динамика количества вакансий PHP-программиста по годам',
-                'filename': 'php_count_dynamics.png',
-                'graph_type': 'demand',
-                'is_general': False,
-                'plot_type': 'line'
-            },
-            {
-                'data': geo_data[1]['salary_rub'],
-                'title': 'Уровень зарплат PHP-программиста по городам',
-                'filename': 'php_city_salary.png',
-                'graph_type': 'geography_salary',
-                'is_general': False,
-                'plot_type': 'bar'
-            },
-            {
-                'data': geo_data[1]['vacancy_share'],
-                'title': 'Доля вакансий PHP-программиста по городам',
-                'filename': 'php_city_share.png',
-                'graph_type': 'geography_share',
-                'is_general': False,
-                'plot_type': 'pie'
-            },
-            {
-                'data': skills_data[1],
-                'title': 'ТОП-20 навыков PHP-программиста',
-                'filename': 'php_skills.png',
-                'graph_type': 'skills',
-                'is_general': False,
-                'plot_type': 'bar'
-            }
-        ]
+        # Общая статистика
+        graphs.append({
+            'data': salary_data[0],
+            'title': 'Динамика уровня зарплат по годам',
+            'filename': 'general_salary_dynamics.png',
+            'graph_type': 'salary',  # Изменено с 'type' на 'graph_type'
+            'is_general': True
+        })
+
+        graphs.append({
+            'data': salary_data[1],
+            'title': 'Динамика количества вакансий по годам',
+            'filename': 'general_count_dynamics.png',
+            'graph_type': 'demand',  # Изменено с 'type' на 'graph_type'
+            'is_general': True
+        })
+
+        graphs.append({
+            'data': geo_data[0]['salary_rub'].sort_values(ascending=False),
+            'title': 'Уровень зарплат по городам',
+            'filename': 'general_city_salary.png',
+            'graph_type': 'geography_salary',  # Изменено с 'type' на 'graph_type'
+            'is_general': True
+        })
+
+        graphs.append({
+            'data': geo_data[0]['vacancy_share'],
+            'title': 'Доля вакансий по городам',
+            'filename': 'general_city_share.png',
+            'graph_type': 'geography_share',  # Изменено с 'type' на 'graph_type'
+            'is_general': True
+        })
+
+        graphs.append({
+            'data': skills_data[0],
+            'title': 'ТОП-20 навыков',
+            'filename': 'general_skills.png',
+            'graph_type': 'skills',  # Изменено с 'type' на 'graph_type'
+            'is_general': True
+        })
+
+        # PHP статистика
+        graphs.append({
+            'data': salary_data[2],
+            'title': 'Динамика уровня зарплат PHP-программиста по годам',
+            'filename': 'php_salary_dynamics.png',
+            'graph_type': 'salary',  # Изменено с 'type' на 'graph_type'
+            'is_general': False
+        })
+
+        graphs.append({
+            'data': salary_data[3],
+            'title': 'Динамика количества вакансий PHP-программиста по годам',
+            'filename': 'php_count_dynamics.png',
+            'graph_type': 'demand',  # Изменено с 'type' на 'graph_type'
+            'is_general': False
+        })
+
+        graphs.append({
+            'data': geo_data[1]['salary_rub'].sort_values(ascending=False),
+            'title': 'Уровень зарплат PHP-программиста по городам',
+            'filename': 'php_city_salary.png',
+            'graph_type': 'geography_salary',  # Изменено с 'type' на 'graph_type'
+            'is_general': False
+        })
+
+        graphs.append({
+            'data': geo_data[1]['vacancy_share'],
+            'title': 'Доля вакансий PHP-программиста по городам',
+            'filename': 'php_city_share.png',
+            'graph_type': 'geography_share',  # Изменено с 'type' на 'graph_type'
+            'is_general': False
+        })
+
+        graphs.append({
+            'data': skills_data[1],
+            'title': 'ТОП-20 навыков PHP-программиста',
+            'filename': 'php_skills.png',
+            'graph_type': 'skills',  # Изменено с 'type' на 'graph_type'
+            'is_general': False
+        })
 
         # Создаем все графики
         result = []
-        for config in graphs_config:
+        for graph in graphs:
+            graph_type = 'pie' if 'share' in graph['graph_type'] else 'bar' if 'skills' in graph['graph_type'] or 'geography_salary' in graph['graph_type'] else 'line'
             file_path = self.create_graph(
-                config['data'],
-                config['title'],
-                config['filename'],
-                config['plot_type']
+                graph['data'],
+                graph['title'],
+                graph['filename'],
+                graph_type
             )
             result.append({
-                'title': config['title'],
+                'title': graph['title'],
                 'image': file_path,
-                'graph_type': config['graph_type'],
-                'is_general': config['is_general']
+                'graph_type': graph['graph_type'],
+                'is_general': graph['is_general']
             })
 
         return result

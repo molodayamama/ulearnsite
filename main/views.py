@@ -32,21 +32,27 @@ def general_statistics(request):
             is_general=True
         ),
 
-        # Статистика по городам
+        # Статистика по городам (зарплаты)
         'city_salary_statistics': GeographyData.objects.filter(
             is_general=True
         ).order_by('-average_salary'),
+        'geography_salary_graphs': Graph.objects.filter(
+            graph_type='geography_salary',
+            is_general=True
+        ),
+
+        # Статистика по городам (доли)
         'city_share_statistics': GeographyData.objects.filter(
             is_general=True
         ).order_by('-vacancy_share'),
-        'geography_graphs': Graph.objects.filter(
-            graph_type='geography',
+        'geography_share_graphs': Graph.objects.filter(
+            graph_type='geography_share',
             is_general=True
         ),
 
         # Статистика навыков
         'skills_statistics': Skill.objects.filter(
-            year=2024  # или другой актуальный год
+            is_general=True
         ).order_by('-count')[:20],
         'skills_graphs': Graph.objects.filter(
             graph_type='skills',
