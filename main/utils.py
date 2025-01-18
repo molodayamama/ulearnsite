@@ -8,7 +8,6 @@ import numpy as np
 
 class DataProcessor:
     def __init__(self, csv_path):
-        # Читаем CSV с правильными названиями колонок
         self.df = pd.read_csv(
             csv_path,
             names=[
@@ -18,7 +17,6 @@ class DataProcessor:
             dtype={
                 'name': str,
                 'key_skills': str,
-                # Убираем предварительное приведение типов для зарплат
                 'salary_currency': str,
                 'area_name': str,
                 'published_at': str
@@ -27,7 +25,7 @@ class DataProcessor:
             low_memory=False
         )
 
-        # Оптимизированная обработка дат
+        # Обработка дат
         self.df['published_at'] = pd.to_datetime(
             self.df['published_at'].str.split('+').str[0],
             format='%Y-%m-%dT%H:%M:%S',
@@ -49,7 +47,7 @@ class DataProcessor:
 
     def _prepare_salary_data(self):
         """Подготовка данных о зарплатах"""
-        # Создаем словарь курсов валют (можно расширить)
+        # Словарь курсов валют
         self.currency_rates = {
             'USD': 90, 'EUR': 98, 'RUR': 1, 'RUB': 1,
             'KZT': 0.15, 'BYR': 27, 'UAH': 2.5, 'GEL': 34
@@ -65,7 +63,7 @@ class DataProcessor:
         self.php_df = self.php_df[self.php_df['salary_rub'] < 10000000]
 
     def _convert_salary_to_rub(self, row):
-        """Оптимизированная конвертация зарплаты в рубли"""
+        """Конвертация зарплаты в рубли"""
         if pd.isna(row['salary_from']) and pd.isna(row['salary_to']):
             return None
 
@@ -84,7 +82,7 @@ class DataProcessor:
         return avg_salary * self.currency_rates[currency]
 
     def process_salary_statistics(self):
-        """Оптимизированная обработка статистики зарплат"""
+        """Обработка статистики зарплат"""
         # Группировка данных
         all_stats = self.df.groupby('year').agg({
             'salary_rub': 'mean',
@@ -104,7 +102,7 @@ class DataProcessor:
         )
 
     def process_geography_data(self):
-        """Оптимизированная обработка географических данных"""
+        """Обработка географических данных"""
         def process_city_stats(df):
             total_vacancies = len(df)
             city_stats = df.groupby('area_name').agg({
@@ -137,10 +135,9 @@ class DataProcessor:
 
 
     def create_graph(self, data, title, filename, graph_type='line'):
-        """Универсальный метод создания графиков"""
+        """Создание графиков"""
         plt.figure(figsize=(12, 6))
 
-        # Настраиваем базовый стиль
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.rcParams['font.size'] = 10
 
@@ -174,10 +171,10 @@ class DataProcessor:
         return f'graphs/{filename}'
 
     def create_all_graphs(self):
-        """Создание всех необходимых графиков"""
+        """Создание всех графиков"""
         graphs = []
 
-        # Получаем все необходимые данные
+        # Получение данных
         salary_data = self.process_salary_statistics()
         geo_data = self.process_geography_data()
         skills_data = self.process_skills()
@@ -187,7 +184,7 @@ class DataProcessor:
             'data': salary_data[0],
             'title': 'Динамика уровня зарплат по годам',
             'filename': 'general_salary_dynamics.png',
-            'graph_type': 'salary',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'salary',
             'is_general': True
         })
 
@@ -195,7 +192,7 @@ class DataProcessor:
             'data': salary_data[1],
             'title': 'Динамика количества вакансий по годам',
             'filename': 'general_count_dynamics.png',
-            'graph_type': 'demand',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'demand',
             'is_general': True
         })
 
@@ -203,7 +200,7 @@ class DataProcessor:
             'data': geo_data[0]['salary_rub'].sort_values(ascending=False),
             'title': 'Уровень зарплат по городам',
             'filename': 'general_city_salary.png',
-            'graph_type': 'geography_salary',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'geography_salary',
             'is_general': True
         })
 
@@ -211,7 +208,7 @@ class DataProcessor:
             'data': geo_data[0]['vacancy_share'],
             'title': 'Доля вакансий по городам',
             'filename': 'general_city_share.png',
-            'graph_type': 'geography_share',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'geography_share',
             'is_general': True
         })
 
@@ -219,7 +216,7 @@ class DataProcessor:
             'data': skills_data[0],
             'title': 'ТОП-20 навыков',
             'filename': 'general_skills.png',
-            'graph_type': 'skills',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'skills',
             'is_general': True
         })
 
@@ -228,7 +225,7 @@ class DataProcessor:
             'data': salary_data[2],
             'title': 'Динамика уровня зарплат PHP-программиста по годам',
             'filename': 'php_salary_dynamics.png',
-            'graph_type': 'salary',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'salary',
             'is_general': False
         })
 
@@ -236,7 +233,7 @@ class DataProcessor:
             'data': salary_data[3],
             'title': 'Динамика количества вакансий PHP-программиста по годам',
             'filename': 'php_count_dynamics.png',
-            'graph_type': 'demand',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'demand',
             'is_general': False
         })
 
@@ -244,7 +241,7 @@ class DataProcessor:
             'data': geo_data[1]['salary_rub'].sort_values(ascending=False),
             'title': 'Уровень зарплат PHP-программиста по городам',
             'filename': 'php_city_salary.png',
-            'graph_type': 'geography_salary',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'geography_salary',
             'is_general': False
         })
 
@@ -252,7 +249,7 @@ class DataProcessor:
             'data': geo_data[1]['vacancy_share'],
             'title': 'Доля вакансий PHP-программиста по городам',
             'filename': 'php_city_share.png',
-            'graph_type': 'geography_share',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'geography_share',
             'is_general': False
         })
 
@@ -260,7 +257,7 @@ class DataProcessor:
             'data': skills_data[1],
             'title': 'ТОП-20 навыков PHP-программиста',
             'filename': 'php_skills.png',
-            'graph_type': 'skills',  # Изменено с 'type' на 'graph_type'
+            'graph_type': 'skills',
             'is_general': False
         })
 

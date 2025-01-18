@@ -11,8 +11,7 @@ def index(request):
         main_info = MainPage.objects.create(
             title="PHP-программист",
             description="пук-пук-пук-пук",
-            # Добавьте дефолтное изображение в папку static/images/
-            image="/static/images/profession.jpg"
+            image="/media/profession_images/default.jpg"
         )
 
     context = {
@@ -72,7 +71,7 @@ def general_statistics(request):
     return render(request, 'main/general_statistics.html', context)
 
 def demand(request):
-    """Представление востребованности (только PHP)"""
+    """Представление востребованности (PHP)"""
     context = {
         'php_salary_statistics': SalaryStatistics.objects.filter(
             is_general=False
@@ -92,7 +91,7 @@ def demand(request):
     return render(request, 'main/demand.html', context)
 
 def geography(request):
-    """Представление географии (только PHP)"""
+    """Представление географии (PHP)"""
     context = {
         'php_city_salary_statistics': GeographyData.objects.filter(
             is_general=False
@@ -112,7 +111,7 @@ def geography(request):
     return render(request, 'main/geography.html', context)
 
 def skills(request):
-    """Представление навыков (только PHP)"""
+    """Представление навыков (PHP)"""
     all_php_skills = Skill.objects.filter(is_general=False)
     total_mentions = sum(skill.count for skill in all_php_skills)
 
@@ -136,25 +135,21 @@ def skills(request):
 
 def latest_vacancies(request):
     """Представление последних вакансий"""
-    # Попытка получить кэшированные вакансии
+    # Кэшированные вакансии
     vacancies = cache.get('latest_php_vacancies')
 
     if vacancies is None:
-        # Если кэша нет, делаем запрос к API HH
         try:
-            # Параметры запроса
             params = {
-                'text': 'PHP OR ПХП OR РНР',  # Поисковый запрос
-                'period': 1,  # За последние 24 часа
-                'per_page': 10,  # Количество вакансий
-                'order_by': 'publication_time',  # Сортировка по дате публикации
+                'text': 'PHP OR ПХП OR РНР',
+                'period': 1,
+                'per_page': 10,
+                'order_by': 'publication_time',
             }
 
-            # Запрос к API
             response = requests.get('https://api.hh.ru/vacancies', params=params)
             response.raise_for_status()  # Проверка на ошибки
 
-            # Получаем данные
             data = response.json()
             vacancies = []
 
@@ -168,13 +163,12 @@ def latest_vacancies(request):
                         item['published_at'],
                         '%Y-%m-%dT%H:%M:%S%z'
                     ),
-                    'skills': '',  # Будет заполнено при доп. запросе
+                    'skills': '',
                     'salary_from': None,
                     'salary_to': None,
                     'salary_currency': None,
                 }
 
-                # Добавляем информацию о зарплате, если она есть
                 if item['salary']:
                     vacancy['salary_from'] = item['salary']['from']
                     vacancy['salary_to'] = item['salary']['to']
@@ -186,16 +180,13 @@ def latest_vacancies(request):
                     detailed_response.raise_for_status()
                     detailed_data = detailed_response.json()
 
-                    # Добавляем навыки
                     if detailed_data.get('key_skills'):
                         skills = [skill['name'] for skill in detailed_data['key_skills']]
                         vacancy['skills'] = ', '.join(skills)
 
-                    # Добавляем описание (опционально)
                     vacancy['description'] = detailed_data.get('description', '')
 
                 except requests.RequestException:
-                    # Если не удалось получить детальную информацию, пропускаем
                     pass
 
                 vacancies.append(vacancy)
@@ -204,7 +195,6 @@ def latest_vacancies(request):
             cache.set('latest_php_vacancies', vacancies, 900)
 
         except requests.RequestException:
-            # В случае ошибки возвращаем пустой список
             vacancies = []
 
     context = {

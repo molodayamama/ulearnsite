@@ -52,7 +52,6 @@ class LastVacancyAdmin(admin.ModelAdmin):
     search_fields = ('title', 'company')
     ordering = ('-published_at',)
 
-# Настройка заголовка админ-панели
 admin.site.site_header = "Администрирование PHP Аналитики"
 admin.site.site_title = "PHP Аналитика"
 admin.site.index_title = "Управление данными"

@@ -94,14 +94,14 @@ class Command(BaseCommand):
             self.stdout.write("Creating graphs...")
             graphs = processor.create_all_graphs()
 
-            # Сохранение графиков (исправленная версия)
+            # Сохранение графиков ()
             for graph_data in graphs:
                 Graph.objects.create(
                     title=graph_data["title"],
                     image=graph_data["image"],
                     graph_type=graph_data[
                         "graph_type"
-                    ],  # Используем graph_type вместо type
+                    ],
                     is_general=graph_data["is_general"],
                 )
 
@@ -119,4 +119,4 @@ class Command(BaseCommand):
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error processing: {str(e)}"))
-            raise  # Добавим это для более подробного отслеживания ошибки
+            raise
