@@ -82,21 +82,3 @@ class Graph(models.Model):
     def __str__(self):
         return self.title
 
-class LastVacancy(models.Model):
-    """Модель для последних вакансий"""
-    title = models.CharField('Название вакансии', max_length=200)
-    description = models.TextField('Описание вакансии')
-    skills = models.TextField('Навыки')
-    company = models.CharField('Компания', max_length=200)
-    salary_from = models.DecimalField('Зарплата от', max_digits=10, decimal_places=2, null=True, blank=True)
-    salary_to = models.DecimalField('Зарплата до', max_digits=10, decimal_places=2, null=True, blank=True)
-    region = models.CharField('Регион', max_length=100)
-    published_at = models.DateTimeField('Дата публикации')
-
-    class Meta:
-        verbose_name = 'Последняя вакансия'
-        verbose_name_plural = 'Последние вакансии'
-        ordering = ['-published_at']
-
-    def __str__(self):
-        return self.title

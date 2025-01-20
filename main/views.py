@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.core.cache import cache
-from .models import MainPage, SalaryStatistics, GeographyData, Skill, Graph, LastVacancy
+from .models import MainPage, SalaryStatistics, GeographyData, Skill, Graph
 import requests
 from datetime import datetime
 
@@ -148,7 +148,7 @@ def latest_vacancies(request):
             }
 
             response = requests.get('https://api.hh.ru/vacancies', params=params)
-            response.raise_for_status()  # Проверка на ошибки
+            response.raise_for_status()
 
             data = response.json()
             vacancies = []
